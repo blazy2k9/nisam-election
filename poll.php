@@ -5,17 +5,12 @@ session_start();
 $date = START_DATE;
 $exp_date = strtotime($date);
 $now = time();
-if (!(isset($_SESSION[LOGIN_ID]) && strlen($_SESSION[LOGIN_ID]) > 0) || $now < $exp_date) {
+if (!(isset($_SESSION[LOGIN_ID]) && strlen($_SESSION[LOGIN_ID]) > 0)) {
     $url = 'http://' . $_SERVER['HTTP_HOST'];            // Get the server
     $url .= rtrim(dirname($_SERVER['PHP_SELF']), '/\\'); // Get the current directory
     $url .= '/index.php';                                // <-- Your relative path
     header('Location: ' . $url, true, 302);              // Use either 301 or 302
 } else {
-    $db_conn = new DB_Connect();
-    $stmt = $db_conn->conn->prepare("SELECT DISTINCT u_id FROM votes where u_id = ?");
-    $stmt->bind_param('i', $_SESSION[LOGIN_ID]);
-    $stmt->execute();
-    $stmt->bind_result($id);
     ?>
     <!DOCTYPE html>
     <html lang="en">
@@ -111,117 +106,15 @@ if (!(isset($_SESSION[LOGIN_ID]) && strlen($_SESSION[LOGIN_ID]) > 0) || $now < $
 
             <br />
 
-            <?php
-            if ($stmt->fetch() || isset($_POST['pres'])) {
-                $status = true;
-                if (isset($_POST['pres'])) {
-                    $office = 'pres';
-                    $stmt->close();
-                    $stmt = $db_conn->conn->prepare("INSERT INTO votes (u_id, office, v_id) VALUES (?, ?, ?)");
-                    $stmt->bind_param('isi', $_SESSION[LOGIN_ID], $office, $_POST['pres']);
-                    $stmt->execute();
-                    if ($stmt->affected_rows != 1) {
-                        $status = false;
-                    }
-                }
+            <div class="center">
 
-                if ($status) {
-                    ?>                    
-                    <div class="center">
+                <small id="hide">Polling is over!<br />Click below to view result!</small>
+                <br /><br /><br />
 
-                        <small id="hide">Stay tuned for the result!</small>
-                        <br /><br /><br />
-
-                        <div class="demo-browser-action">
-                            <a class="btn btn-danger btn-lg btn-block" id="countdown" href="#">
-                                <?php
-                                $date = STOP_DATE;
-                                $exp_date = strtotime($date);
-                                if ($now < $exp_date) {
-                                    echo "COUNTDOWN";
-                                } else {
-                                    echo "View Result!";
-                                }
-                                ?>
-                            </a>
-                        </div>
-                    </div>
-                    <?php if ($now < $exp_date) { ?>
-                        <script>
-
-                            // Count down milliseconds = server_end - server_now = client_end - client_now
-                            var server_end = <?php echo $exp_date; ?> * 1000;
-                            var server_now = <?php echo time(); ?> * 1000;
-                            var client_now = new Date().getTime();
-                            var end = server_end - server_now + client_now; // this is the real end time
-
-                            var _second = 1000;
-                            var _minute = _second * 60;
-                            var _hour = _minute * 60;
-                            var _day = _hour * 24
-                            var timer;
-
-                            function showRemaining() {
-                                var now = new Date();
-                                var distance = end - now;
-                                if (distance < 0) {
-                                    clearInterval(timer);
-                                    location.reload();
-                                    return;
-                                }
-                                var days = Math.floor(distance / _day);
-                                var hours = Math.floor((distance % _day) / _hour);
-                                var minutes = Math.floor((distance % _hour) / _minute);
-                                var seconds = Math.floor((distance % _minute) / _second);
-
-                                document.getElementById('countdown').innerHTML = two(hours) + " : " + two(minutes) + " : " + two(seconds);
-
-                            }
-
-                            function two(x) {
-                                if (x < 10)
-                                    return "0" + x;
-                                else
-                                    return x;
-                            }
-
-                            timer = setInterval(showRemaining, 1000);
-                        </script>
-                        <?php
-                    }
-                } else {
-                    $url = 'http://' . $_SERVER['HTTP_HOST'];            // Get the server
-                    $url .= rtrim(dirname($_SERVER['PHP_SELF']), '/\\'); // Get the current directory
-                    $url .= '/index.php';                                // <-- Your relative path
-                    header('Location: ' . $url, true, 302);              // Use either 301 or 302
-                }
-            } else {
-                ?>
-                <form class="ballot" method="POST">
-                    <h3>President</h3>
-                    <hr/>
-                    <div class="to-fade">
-                        <?php
-                        $stmt = $db_conn->conn->prepare("SELECT id, full_name FROM users where office = ?");
-                        $office = 'pres';
-                        $stmt->bind_param('s', $office);
-                        $stmt->execute();
-                        $stmt->bind_result($id, $full_name);
-                        while ($stmt->fetch()) {
-                            ?>
-                            <label class="radio">
-                                <input type="radio" name="pres" id="optionsRadios1" value="<?php echo $id; ?>" data-toggle="radio" class="custom-radio"><span class="icons"><span class="icon-unchecked"></span><span class="icon-checked"></span></span>
-                                <?php echo $full_name; ?>
-                            </label>
-                            <?php
-                        }
-                        mysqli_close($db_conn->conn);
-                        ?>
-                    </div>
-                    <input id="nextButton" type="submit" class="next btn btn-primary"/>
-                </form>
-            <?php }
-            ?>
+                <div class="demo-browser-action">
+                    <a class="btn btn-danger btn-lg btn-block" id="countdown" href="result.php">View Result!</a>
+                </div>
+            </div>
 
             <!-- jQuery (necessary for Flat UI's JavaScript plugins) -->
             <script src="js/vendor/jquery.min.js"></script>
@@ -233,5 +126,5 @@ if (!(isset($_SESSION[LOGIN_ID]) && strlen($_SESSION[LOGIN_ID]) > 0) || $now < $
         </body>
     </html>
     <?php
-}    
+}
 exit;
